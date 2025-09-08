@@ -383,6 +383,7 @@
             let checkInterval = null;
             let lastMessageId = 0;
             let binId = null;
+            let userUpdateCount = 0;
             
             // Generate a random room code
             function generateRoomCode() {
@@ -453,7 +454,7 @@
                         loadMessages(data.record.messages || []);
                         
                         // Add user to room
-                        addUserToRoom();
+                        await addUserToRoom(data.record.users || []);
                         
                         // Start checking for updates
                         startCheckingForUpdates();
@@ -510,7 +511,7 @@
             }
             
             // Add user to room
-            async function addUserToRoom() {
+            async function addUserToRoom(existingUsers = []) {
                 try {
                     // Get current room data
                     const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
@@ -542,7 +543,7 @@
             // Update room data
             async function updateRoomData(roomData) {
                 try {
-                    await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -550,6 +551,11 @@
                         },
                         body: JSON.stringify(roomData)
                     });
+                    
+                    if (response.ok) {
+                        userUpdateCount++;
+                        console.log("Room data updated successfully");
+                    }
                 } catch (error) {
                     console.error('Error updating room data:', error);
                 }
@@ -559,14 +565,19 @@
             function updateUsersList(users) {
                 usersInRoom.innerHTML = '';
                 
-                users.forEach(user => {
-                    const li = document.createElement('li');
-                    li.textContent = user;
-                    if (user === currentUser) {
-                        li.innerHTML = `<strong>${user} (You)</strong>`;
-                    }
-                    usersInRoom.appendChild(li);
-                });
+                if (users && users.length > 0) {
+                    users.forEach(user => {
+                        const li = document.createElement('li');
+                        if (user === currentUser) {
+                            li.innerHTML = `<strong>${user} (You)</strong>`;
+                        } else {
+                            li.textContent = user;
+                        }
+                        usersInRoom.appendChild(li);
+                    });
+                } else {
+                    usersInRoom.innerHTML = '<li>No users in room</li>';
+                }
             }
             
             // Update connection status
