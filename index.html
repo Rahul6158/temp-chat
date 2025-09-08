@@ -3,115 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Chat App by Riteesh Varma</title>
+    <title>TempChat - Real-Time Chat App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6A11CB 0%, #2575FC 100%);
+            --secondary-gradient: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+            --accent-color: #FF6B6B;
+            --light-bg: #f8f9fa;
+            --dark-text: #2d3436;
+            --light-text: #f8f9fa;
+            --message-self: linear-gradient(135deg, #6A11CB 0%, #2575FC 100%);
+            --message-other: #f1f3f6;
+            --sidebar-bg: #ffffff;
+            --input-bg: #f1f3f6;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
         }
 
         body {
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            background: var(--primary-gradient);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
         }
 
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 1200px;
             background-color: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 90vh;
+            height: 95vh;
+            margin: 20px;
         }
 
         header {
-            background: linear-gradient(90deg, #4a6cf7, #6a82fb);
+            background: var(--primary-gradient);
             color: white;
-            padding: 20px;
-            text-align: center;
+            padding: 18px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            background: var(--secondary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
+            font-size: 22px;
+            font-weight: 600;
         }
 
         .subtitle {
-            font-size: 14px;
+            font-size: 13px;
             opacity: 0.9;
         }
 
         .main-content {
             display: flex;
             flex: 1;
+            overflow: hidden;
         }
 
         .sidebar {
-            width: 250px;
-            background-color: #f5f7ff;
+            width: 300px;
+            background-color: var(--sidebar-bg);
             padding: 20px;
-            border-right: 1px solid #e0e5ff;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
         }
 
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 18px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             font-weight: 600;
-            color: #4a5568;
+            color: var(--dark-text);
+            font-size: 14px;
         }
 
         input {
             width: 100%;
-            padding: 10px 15px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
+            padding: 12px 16px;
+            border: 1px solid #e1e5eb;
+            border-radius: var(--radius);
             font-size: 14px;
+            background: var(--input-bg);
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2575FC;
+            box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.2);
         }
 
         button {
-            background: linear-gradient(90deg, #4a6cf7, #6a82fb);
+            background: var(--primary-gradient);
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
+            padding: 12px 16px;
+            border-radius: var(--radius);
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s ease;
             width: 100%;
+            font-size: 14px;
         }
 
         button:hover {
             opacity: 0.9;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 117, 252, 0.2);
         }
 
         .room-code {
-            background-color: #e6eeff;
-            padding: 10px;
-            border-radius: 8px;
+            background: var(--secondary-gradient);
+            color: white;
+            padding: 12px;
+            border-radius: var(--radius);
             text-align: center;
             margin: 15px 0;
             font-weight: 600;
-            color: #4a6cf7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .users-list {
@@ -119,8 +176,12 @@
         }
 
         .users-list h3 {
-            margin-bottom: 10px;
-            color: #4a5568;
+            margin-bottom: 12px;
+            color: var(--dark-text);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         #usersInRoom {
@@ -128,71 +189,102 @@
         }
 
         #usersInRoom li {
-            padding: 8px;
-            background-color: white;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 10px 12px;
+            background-color: var(--input-bg);
+            margin-bottom: 8px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #usersInRoom li:before {
+            content: "•";
+            color: #43cea2;
+            font-weight: bold;
+            font-size: 18px;
         }
 
         .messages {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background-color: #fafbff;
+            background-color: var(--light-bg);
+            display: flex;
+            flex-direction: column;
         }
 
         .message {
             margin-bottom: 15px;
-            max-width: 80%;
+            max-width: 75%;
+            display: flex;
+            flex-direction: column;
         }
 
         .message.my-message {
-            margin-left: auto;
+            align-self: flex-end;
+        }
+
+        .message.other-message {
+            align-self: flex-start;
         }
 
         .message-content {
-            padding: 12px 15px;
+            padding: 12px 16px;
             border-radius: 18px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow);
+            word-break: break-word;
         }
 
         .my-message .message-content {
-            background: linear-gradient(90deg, #4a6cf7, #6a82fb);
+            background: var(--message-self);
             color: white;
-            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
         }
 
         .other-message .message-content {
-            background-color: white;
-            color: #4a5568;
-            border-top-left-radius: 5px;
+            background-color: var(--message-other);
+            color: var(--dark-text);
+            border-bottom-left-radius: 5px;
         }
 
         .message-info {
-            font-size: 12px;
+            font-size: 11px;
             margin-top: 5px;
             opacity: 0.7;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5px;
         }
 
         .input-area {
-            padding: 20px;
-            border-top: 1px solid #e0e5ff;
+            padding: 18px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            background: white;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
         }
 
         #messageInput {
             flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #d1d5db;
-            border-radius: 25px;
-            font-size: 14px;
+            padding: 14px 18px;
+            border: 1px solid #e1e5eb;
+            border-radius: 24px;
+            font-size: 15px;
+            background: var(--input-bg);
         }
 
         #sendMessage {
             width: auto;
-            border-radius: 25px;
+            border-radius: 24px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .welcome-screen {
@@ -203,30 +295,37 @@
             text-align: center;
             padding: 40px;
             height: 100%;
+            background: var(--light-bg);
         }
 
         .welcome-screen h2 {
-            color: #4a5568;
+            color: var(--dark-text);
             margin-bottom: 20px;
+            font-size: 24px;
         }
 
         .welcome-screen p {
-            color: #718096;
+            color: #636e72;
             margin-bottom: 10px;
             max-width: 500px;
+            line-height: 1.5;
         }
 
         .instructions {
-            background-color: #f8f9ff;
+            background-color: white;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: var(--radius);
             margin-top: 20px;
             text-align: left;
+            box-shadow: var(--shadow);
         }
 
         .instructions h3 {
-            margin-bottom: 10px;
-            color: #4a5568;
+            margin-bottom: 12px;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .instructions ol {
@@ -234,42 +333,34 @@
         }
 
         .instructions li {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            color: #636e72;
         }
 
         .hidden {
             display: none;
         }
 
-        @media (max-width: 768px) {
-            .main-content {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                border-right: none;
-                border-bottom: 1px solid #e0e5ff;
-            }
-            
-            .container {
-                height: auto;
-            }
-        }
-
         .typing-indicator {
             font-style: italic;
-            color: #718096;
+            color: #636e72;
             margin: 5px 0;
             height: 20px;
+            font-size: 13px;
+            padding: 0 10px;
         }
 
         .status {
-            padding: 5px 10px;
-            border-radius: 15px;
+            padding: 8px 12px;
+            border-radius: 20px;
             font-size: 12px;
             margin-top: 10px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .status.connected {
@@ -284,21 +375,154 @@
 
         .loading {
             text-align: center;
-            padding: 20px;
-            color: #718096;
+            padding: 30px;
+            color: #636e72;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f1f3f6;
+            border-top: 4px solid #2575FC;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
         
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 15px;
-            background-color: #4a6cf7;
+            padding: 15px 20px;
+            background: var(--primary-gradient);
             color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             z-index: 1000;
             display: none;
+            max-width: 350px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .icon-button {
+            background: rgba(255, 255, 255, 0.2);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(15deg);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #636e72;
+        }
+        
+        .empty-state i {
+            font-size: 40px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes messageAppear {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .message {
+            animation: messageAppear 0.3s ease;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 900px) {
+            .container {
+                height: 100vh;
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                max-height: 40vh;
+            }
+            
+            .messages {
+                padding-bottom: 80px;
+            }
+            
+            .input-area {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-radius: 0;
+                padding: 15px;
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 18px;
+            }
+            
+            .sidebar {
+                padding: 15px;
+            }
+            
+            .messages {
+                padding: 15px;
+                padding-bottom: 80px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .welcome-screen {
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -307,47 +531,70 @@
     
     <div class="container">
         <header>
-            <h1>Real-Time Chat App</h1>
-            <p class="subtitle">Chat instantly with anyone sharing your room code</p>
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div>
+                    <h1>TempChat</h1>
+                    <p class="subtitle">Real-time messaging with anyone, anywhere</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="icon-button" id="refreshButton">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <div class="icon-button" id="themeButton">
+                    <i class="fas fa-moon"></i>
+                </div>
+            </div>
         </header>
         
         <div class="main-content">
             <div class="sidebar">
                 <div class="form-group">
-                    <label for="username">Your Name</label>
+                    <label for="username"><i class="fas fa-user"></i> Your Name</label>
                     <input type="text" id="username" placeholder="Enter your name">
                 </div>
                 
                 <div class="form-group">
-                    <label for="roomCode">Room Code</label>
+                    <label for="roomCode"><i class="fas fa-door-closed"></i> Room Code</label>
                     <input type="text" id="roomCode" placeholder="Enter room code">
                 </div>
                 
-                <button id="joinRoom">Join Room</button>
-                <button id="createRoom" style="background: linear-gradient(90deg, #7e42dd, #a777e3); margin-top: 10px;">Create New Room</button>
+                <button id="joinRoom"><i class="fas fa-sign-in-alt"></i> Join Room</button>
+                <button id="createRoom" style="background: var(--secondary-gradient); margin-top: 10px;"><i class="fas fa-plus"></i> Create New Room</button>
                 
                 <div id="roomInfo" class="hidden">
-                    <div class="room-code">Room Code: <span id="currentRoomCode"></span></div>
+                    <div class="room-code">
+                        <i class="fas fa-key"></i>
+                        Room Code: <span id="currentRoomCode"></span>
+                    </div>
                     
                     <div class="users-list">
-                        <h3>Users in Room</h3>
+                        <h3><i class="fas fa-users"></i> Users in Room</h3>
                         <ul id="usersInRoom"></ul>
                     </div>
 
-                    <div id="connectionStatus" class="status disconnected">Disconnected</div>
-                    <button id="copyRoomCode" style="background: linear-gradient(90deg, #48bb78, #38a169); margin-top: 10px;">Copy Room Code</button>
+                    <div id="connectionStatus" class="status disconnected">
+                        <i class="fas fa-plug"></i>
+                        <span>Disconnected</span>
+                    </div>
+                    <button id="copyRoomCode" style="background: linear-gradient(90deg, #48bb78, #38a169); margin-top: 10px;">
+                        <i class="fas fa-copy"></i> Copy Room Code
+                    </button>
                 </div>
             </div>
             
             <div class="chat-area">
                 <div id="welcomeScreen" class="welcome-screen">
-                    <h2>Welcome to the Chat App!</h2>
-                    <p>To start chatting, either create a new room or join an existing one with a room code.</p>
+                    <h2>Welcome to TempChat!</h2>
+                    <p>Connect with others instantly by creating a new room or joining an existing one with a room code.</p>
                     
                     <div class="instructions">
-                        <h3>How to use:</h3>
+                        <h3><i class="fas fa-info-circle"></i> How to use:</h3>
                         <ol>
-                            <li>Enter your name</li>
+                            <li>Enter your display name</li>
                             <li>Create a new room or enter an existing room code</li>
                             <li>Share the room code with others you want to chat with</li>
                             <li>Start messaging in real-time!</li>
@@ -357,14 +604,17 @@
                 
                 <div id="chatScreen" class="hidden">
                     <div class="messages" id="messagesContainer">
-                        <div class="loading">Loading messages...</div>
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <div>Loading messages...</div>
+                        </div>
                     </div>
                     
                     <div class="typing-indicator" id="typingIndicator"></div>
                     
                     <div class="input-area">
                         <input type="text" id="messageInput" placeholder="Type your message...">
-                        <button id="sendMessage">Send</button>
+                        <button id="sendMessage"><i class="fas fa-paper-plane"></i> Send</button>
                     </div>
                 </div>
             </div>
@@ -373,15 +623,11 @@
 
     <script>
         // JSONBin.io configuration
-        const JSONBIN_API_KEY = '$2a$10$YNflwpCDfrkvA1owMU9AQuzEDUHvTmvIVvRTn.HpwDkikPIiRnQSG';
+        const JSONBIN_API_KEY = '$2a$10$NUdHI0xRzqGAfPhRD.bByOVr8s8GSTUGBVYRBxOQYsQNqrOZLnWdm';
         const JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b';
         
-        // Registry bin ID - this should be created manually first
-        // To create: 
-        // 1. Go to https://jsonbin.io/
-        // 2. Create a new bin with content: {"rooms": {}}
-        // 3. Copy the bin ID and paste it here
-        const REGISTRY_BIN_ID = '68bec2c5ae596e708fe6c36b'; // Replace with your actual registry bin ID
+        // Registry bin ID
+        const REGISTRY_BIN_ID = '68be764cae596e708fe66de9';
         
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
@@ -401,21 +647,24 @@
             const connectionStatus = document.getElementById('connectionStatus');
             const copyRoomCodeBtn = document.getElementById('copyRoomCode');
             const notification = document.getElementById('notification');
+            const refreshButton = document.getElementById('refreshButton');
+            const themeButton = document.getElementById('themeButton');
             
             // Current user and room
             let currentUser = '';
             let currentRoom = '';
             let currentBinId = '';
             let checkInterval = null;
-            let lastMessageTimestamp = 0; // Track last message timestamp instead of ID
-            let displayedMessageIds = new Set(); // Track displayed messages to prevent duplicates
+            let lastMessageTimestamp = 0;
+            let displayedMessageIds = new Set();
             let userUpdateCount = 0;
             let lastUserList = [];
+            let isDarkTheme = false;
             
             // Show notification
             function showNotification(message, isError = false) {
                 notification.textContent = message;
-                notification.style.backgroundColor = isError ? '#e53e3e' : '#4a6cf7';
+                notification.style.background = isError ? 'linear-gradient(135deg, #ff6b6b 0%, #c53030 100%)' : 'var(--primary-gradient)';
                 notification.style.display = 'block';
                 
                 setTimeout(() => {
@@ -435,6 +684,24 @@
                 }).catch(err => {
                     showNotification('Failed to copy room code', true);
                 });
+            });
+            
+            // Refresh button
+            refreshButton.addEventListener('click', function() {
+                if (currentBinId) {
+                    checkForUpdates();
+                    showNotification('Refreshing messages...');
+                } else {
+                    showNotification('Not in a room', true);
+                }
+            });
+            
+            // Theme toggle
+            themeButton.addEventListener('click', function() {
+                isDarkTheme = !isDarkTheme;
+                document.body.classList.toggle('dark-theme', isDarkTheme);
+                themeButton.innerHTML = isDarkTheme ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+                showNotification(isDarkTheme ? 'Dark theme enabled' : 'Light theme enabled');
             });
             
             // Create a new room
@@ -672,7 +939,6 @@
                     
                     if (response.ok) {
                         userUpdateCount++;
-                        console.log("Room data updated successfully");
                     }
                 } catch (error) {
                     console.error('Error updating room data:', error);
@@ -708,63 +974,78 @@
             function updateConnectionStatus(status) {
                 let statusText = 'Disconnected';
                 let statusClass = 'disconnected';
+                let icon = 'fa-plug';
                 
                 switch(status) {
                     case 'connected':
                         statusText = 'Connected';
                         statusClass = 'connected';
+                        icon = 'fa-wifi';
                         break;
                     case 'connecting':
                         statusText = 'Connecting...';
                         statusClass = 'disconnected';
+                        icon = 'fa-sync-alt';
                         break;
                 }
                 
-                connectionStatus.textContent = statusText;
+                connectionStatus.innerHTML = `<i class="fas ${icon}"></i><span>${statusText}</span>`;
                 connectionStatus.className = `status ${statusClass}`;
+            }
+            
+            // Check for updates manually
+            async function checkForUpdates() {
+                try {
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
+                        headers: {
+                            'X-Master-Key': JSONBIN_API_KEY
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const roomData = data.record;
+                        
+                        // Update users list
+                        updateUsersList(roomData.users);
+                        
+                        // Check for new messages using timestamp comparison
+                        if (roomData.messages && roomData.messages.length > 0) {
+                            const latestMessage = roomData.messages[roomData.messages.length - 1];
+                            
+                            if (latestMessage.timestamp > lastMessageTimestamp) {
+                                // Add only new messages to UI
+                                for (let i = 0; i < roomData.messages.length; i++) {
+                                    const message = roomData.messages[i];
+                                    if (message.timestamp > lastMessageTimestamp && !displayedMessageIds.has(message.timestamp)) {
+                                        addMessageToUI(message);
+                                        displayedMessageIds.add(message.timestamp);
+                                    }
+                                }
+                                lastMessageTimestamp = latestMessage.timestamp;
+                            }
+                        }
+                        
+                        updateConnectionStatus('connected');
+                    }
+                } catch (error) {
+                    console.error('Error checking for updates:', error);
+                    updateConnectionStatus('disconnected');
+                }
             }
             
             // Start checking for updates
             function startCheckingForUpdates() {
-                checkInterval = setInterval(async () => {
-                    try {
-                        const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
-                            headers: {
-                                'X-Master-Key': JSONBIN_API_KEY
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            const roomData = data.record;
-                            
-                            // Update users list
-                            updateUsersList(roomData.users);
-                            
-                            // Check for new messages using timestamp comparison
-                            if (roomData.messages && roomData.messages.length > 0) {
-                                const latestMessage = roomData.messages[roomData.messages.length - 1];
-                                
-                                if (latestMessage.timestamp > lastMessageTimestamp) {
-                                    // Add only new messages to UI
-                                    for (let i = 0; i < roomData.messages.length; i++) {
-                                        const message = roomData.messages[i];
-                                        if (message.timestamp > lastMessageTimestamp && !displayedMessageIds.has(message.timestamp)) {
-                                            addMessageToUI(message);
-                                            displayedMessageIds.add(message.timestamp);
-                                        }
-                                    }
-                                    lastMessageTimestamp = latestMessage.timestamp;
-                                }
-                            }
-                            
-                            updateConnectionStatus('connected');
-                        }
-                    } catch (error) {
-                        console.error('Error checking for updates:', error);
-                        updateConnectionStatus('disconnected');
-                    }
-                }, 1500); // Reduced to 1.5 seconds for better real-time feel
+                // Clear any existing interval
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                }
+                
+                // Check immediately first
+                checkForUpdates();
+                
+                // Then set up the interval
+                checkInterval = setInterval(checkForUpdates, 1000);
             }
             
             // Send message
@@ -828,7 +1109,12 @@
                 displayedMessageIds.clear();
                 
                 if (messages.length === 0) {
-                    messagesContainer.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
+                    messagesContainer.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-comment-dots"></i>
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    `;
                     return;
                 }
                 
@@ -843,11 +1129,21 @@
                 });
                 
                 // Scroll to bottom
+                scrollToBottom();
+            }
+            
+            // Scroll to bottom of messages
+            function scrollToBottom() {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
             
             // Add message to UI
             function addMessageToUI(message) {
+                // Remove empty state if it exists
+                if (messagesContainer.querySelector('.empty-state')) {
+                    messagesContainer.innerHTML = '';
+                }
+                
                 // Remove loading message if it exists
                 if (messagesContainer.querySelector('.loading')) {
                     messagesContainer.innerHTML = '';
@@ -873,13 +1169,16 @@
                 
                 messageDiv.innerHTML = `
                     <div class="message-content">${message.text}</div>
-                    <div class="message-info">${message.user} • ${message.time}</div>
+                    <div class="message-info">
+                        <span>${message.user}</span>
+                        <span>${message.time}</span>
+                    </div>
                 `;
                 
                 messagesContainer.appendChild(messageDiv);
                 
                 // Scroll to bottom
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                scrollToBottom();
             }
             
             // Clean up when leaving the page
