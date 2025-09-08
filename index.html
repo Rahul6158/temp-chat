@@ -256,6 +256,37 @@
                 height: auto;
             }
         }
+
+        .typing-indicator {
+            font-style: italic;
+            color: #718096;
+            margin: 5px 0;
+            height: 20px;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .status.connected {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+
+        .status.disconnected {
+            background-color: #fce8e6;
+            color: #c5221f;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+        }
     </style>
 </head>
 <body>
@@ -287,6 +318,8 @@
                         <h3>Users in Room</h3>
                         <ul id="usersInRoom"></ul>
                     </div>
+
+                    <div id="connectionStatus" class="status disconnected">Disconnected</div>
                 </div>
             </div>
             
@@ -308,8 +341,10 @@
                 
                 <div id="chatScreen" class="hidden">
                     <div class="messages" id="messagesContainer">
-                        <!-- Messages will be added here dynamically -->
+                        <div class="loading">Loading messages...</div>
                     </div>
+                    
+                    <div class="typing-indicator" id="typingIndicator"></div>
                     
                     <div class="input-area">
                         <input type="text" id="messageInput" placeholder="Type your message...">
@@ -321,6 +356,10 @@
     </div>
 
     <script>
+        // JSONBin.io configuration
+        const JSONBIN_API_KEY = '$2a$10$NUdHI0xRzqGAfPhRD.bByOVr8s8GSTUGBVYRBxOQYsQNqrOZLnWdm';
+        const JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b';
+        
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
             const usernameInput = document.getElementById('username');
@@ -335,10 +374,15 @@
             const messagesContainer = document.getElementById('messagesContainer');
             const messageInput = document.getElementById('messageInput');
             const sendMessageBtn = document.getElementById('sendMessage');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const connectionStatus = document.getElementById('connectionStatus');
             
             // Current user and room
             let currentUser = '';
             let currentRoom = '';
+            let checkInterval = null;
+            let lastMessageId = 0;
+            let binId = null;
             
             // Generate a random room code
             function generateRoomCode() {
@@ -384,38 +428,200 @@
                 roomInfo.classList.remove('hidden');
                 currentRoomCode.textContent = currentRoom;
                 
-                // Add user to room
-                addUserToRoom(currentUser, currentRoom);
-                
-                // Load previous messages
-                loadMessages();
-                
-                // Update users list
-                updateUsersList();
-                
-                // Start checking for updates
-                setInterval(checkForUpdates, 2000);
+                // Initialize the chat room
+                initializeRoom();
+            }
+            
+            // Initialize the chat room
+            async function initializeRoom() {
+                try {
+                    updateConnectionStatus('connecting');
+                    
+                    // Try to get the room data using the room code as bin ID
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${currentRoom}`, {
+                        headers: {
+                            'X-Master-Key': JSONBIN_API_KEY
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        binId = data.record.binId || currentRoom;
+                        updateConnectionStatus('connected');
+                        
+                        // Load previous messages
+                        loadMessages(data.record.messages || []);
+                        
+                        // Add user to room
+                        addUserToRoom();
+                        
+                        // Start checking for updates
+                        startCheckingForUpdates();
+                    } else {
+                        // Create new room if it doesn't exist
+                        await createNewRoom();
+                    }
+                } catch (error) {
+                    console.error('Error initializing room:', error);
+                    updateConnectionStatus('disconnected');
+                    alert('Failed to connect to chat room. Please try again.');
+                }
+            }
+            
+            // Create a new room
+            async function createNewRoom() {
+                try {
+                    const roomData = {
+                        binId: currentRoom,
+                        users: [currentUser],
+                        messages: [],
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    const response = await fetch(JSONBIN_BASE_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_API_KEY,
+                            'X-Bin-Name': `Chat Room ${currentRoom}`,
+                            'X-Bin-Private': 'false'
+                        },
+                        body: JSON.stringify(roomData)
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        binId = data.metadata.id;
+                        updateConnectionStatus('connected');
+                        
+                        // Load empty messages
+                        loadMessages([]);
+                        
+                        // Start checking for updates
+                        startCheckingForUpdates();
+                    } else {
+                        throw new Error('Failed to create room');
+                    }
+                } catch (error) {
+                    console.error('Error creating room:', error);
+                    updateConnectionStatus('disconnected');
+                    alert('Failed to create chat room. Please try again.');
+                }
             }
             
             // Add user to room
-            function addUserToRoom(user, room) {
-                const roomUsers = JSON.parse(localStorage.getItem(`room-${room}-users`) || '[]');
-                if (!roomUsers.includes(user)) {
-                    roomUsers.push(user);
-                    localStorage.setItem(`room-${room}-users`, JSON.stringify(roomUsers));
+            async function addUserToRoom() {
+                try {
+                    // Get current room data
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                        headers: {
+                            'X-Master-Key': JSONBIN_API_KEY
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const roomData = data.record;
+                        
+                        // Add user if not already in room
+                        if (!roomData.users.includes(currentUser)) {
+                            roomData.users.push(currentUser);
+                            
+                            // Update room data
+                            await updateRoomData(roomData);
+                        }
+                        
+                        // Update users list
+                        updateUsersList(roomData.users);
+                    }
+                } catch (error) {
+                    console.error('Error adding user to room:', error);
+                }
+            }
+            
+            // Update room data
+            async function updateRoomData(roomData) {
+                try {
+                    await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_API_KEY
+                        },
+                        body: JSON.stringify(roomData)
+                    });
+                } catch (error) {
+                    console.error('Error updating room data:', error);
                 }
             }
             
             // Update users list
-            function updateUsersList() {
-                const roomUsers = JSON.parse(localStorage.getItem(`room-${currentRoom}-users`) || '[]');
+            function updateUsersList(users) {
                 usersInRoom.innerHTML = '';
                 
-                roomUsers.forEach(user => {
+                users.forEach(user => {
                     const li = document.createElement('li');
                     li.textContent = user;
+                    if (user === currentUser) {
+                        li.innerHTML = `<strong>${user} (You)</strong>`;
+                    }
                     usersInRoom.appendChild(li);
                 });
+            }
+            
+            // Update connection status
+            function updateConnectionStatus(status) {
+                let statusText = 'Disconnected';
+                let statusClass = 'disconnected';
+                
+                switch(status) {
+                    case 'connected':
+                        statusText = 'Connected';
+                        statusClass = 'connected';
+                        break;
+                    case 'connecting':
+                        statusText = 'Connecting...';
+                        statusClass = 'disconnected';
+                        break;
+                }
+                
+                connectionStatus.textContent = statusText;
+                connectionStatus.className = `status ${statusClass}`;
+            }
+            
+            // Start checking for updates
+            function startCheckingForUpdates() {
+                checkInterval = setInterval(async () => {
+                    try {
+                        const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                            headers: {
+                                'X-Master-Key': JSONBIN_API_KEY
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const roomData = data.record;
+                            
+                            // Update users list
+                            updateUsersList(roomData.users);
+                            
+                            // Check for new messages
+                            if (roomData.messages && roomData.messages.length > lastMessageId) {
+                                // Add new messages to UI
+                                for (let i = lastMessageId; i < roomData.messages.length; i++) {
+                                    addMessageToUI(roomData.messages[i]);
+                                }
+                                lastMessageId = roomData.messages.length;
+                            }
+                            
+                            updateConnectionStatus('connected');
+                        }
+                    } catch (error) {
+                        console.error('Error checking for updates:', error);
+                        updateConnectionStatus('disconnected');
+                    }
+                }, 2000);
             }
             
             // Send message
@@ -426,33 +632,59 @@
                 }
             });
             
-            function sendMessage() {
+            async function sendMessage() {
                 const messageText = messageInput.value.trim();
                 if (!messageText) return;
                 
-                // Create message object
-                const message = {
-                    user: currentUser,
-                    text: messageText,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                };
-                
-                // Save to localStorage
-                const messages = JSON.parse(localStorage.getItem(`room-${currentRoom}-messages`) || '[]');
-                messages.push(message);
-                localStorage.setItem(`room-${currentRoom}-messages`, JSON.stringify(messages));
-                
-                // Add to UI
-                addMessageToUI(message);
-                
-                // Clear input
-                messageInput.value = '';
+                try {
+                    // Get current room data
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                        headers: {
+                            'X-Master-Key': JSONBIN_API_KEY
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const roomData = data.record;
+                        
+                        // Create message object
+                        const message = {
+                            id: roomData.messages ? roomData.messages.length : 0,
+                            user: currentUser,
+                            text: messageText,
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            timestamp: Date.now()
+                        };
+                        
+                        // Add message to room data
+                        if (!roomData.messages) roomData.messages = [];
+                        roomData.messages.push(message);
+                        
+                        // Update room data
+                        await updateRoomData(roomData);
+                        
+                        // Add to UI
+                        addMessageToUI(message);
+                        
+                        // Clear input
+                        messageInput.value = '';
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    alert('Failed to send message. Please try again.');
+                }
             }
             
             // Load messages
-            function loadMessages() {
-                const messages = JSON.parse(localStorage.getItem(`room-${currentRoom}-messages`) || '[]');
+            function loadMessages(messages) {
                 messagesContainer.innerHTML = '';
+                lastMessageId = messages.length;
+                
+                if (messages.length === 0) {
+                    messagesContainer.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
+                    return;
+                }
                 
                 messages.forEach(message => {
                     addMessageToUI(message);
@@ -464,6 +696,11 @@
             
             // Add message to UI
             function addMessageToUI(message) {
+                // Remove loading message if it exists
+                if (messagesContainer.querySelector('.loading')) {
+                    messagesContainer.innerHTML = '';
+                }
+                
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message');
                 
@@ -484,19 +721,12 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
             
-            // Check for updates
-            function checkForUpdates() {
-                // Update users list
-                updateUsersList();
-                
-                // Check for new messages
-                const messages = JSON.parse(localStorage.getItem(`room-${currentRoom}-messages`) || '[]');
-                const currentMessageCount = messagesContainer.querySelectorAll('.message').length;
-                
-                if (messages.length > currentMessageCount) {
-                    loadMessages();
+            // Clean up when leaving the page
+            window.addEventListener('beforeunload', function() {
+                if (checkInterval) {
+                    clearInterval(checkInterval);
                 }
-            }
+            });
         });
     </script>
 </body>
