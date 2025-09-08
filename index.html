@@ -376,6 +376,13 @@
         const JSONBIN_API_KEY = '$2a$10$NUdHI0xRzqGAfPhRD.bByOVr8s8GSTUGBVYRBxOQYsQNqrOZLnWdm';
         const JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b';
         
+        // Registry bin ID - this should be created manually first
+        // To create: 
+        // 1. Go to https://jsonbin.io/
+        // 2. Create a new bin with content: {"rooms": {}}
+        // 3. Copy the bin ID and paste it here
+        const REGISTRY_BIN_ID = '68be764cae596e708fe66de9'; // Replace with your actual registry bin ID
+        
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
             const usernameInput = document.getElementById('username');
@@ -398,9 +405,9 @@
             // Current user and room
             let currentUser = '';
             let currentRoom = '';
+            let currentBinId = '';
             let checkInterval = null;
             let lastMessageId = 0;
-            let binId = null;
             let userUpdateCount = 0;
             let lastUserList = [];
             
@@ -472,13 +479,10 @@
                 initializeRoom();
             }
             
-            // Initialize the chat room
-            async function initializeRoom() {
+            // Get or create room registry
+            async function getRoomRegistry() {
                 try {
-                    updateConnectionStatus('connecting');
-                    
-                    // Try to get the room data using the room code as bin ID
-                    const response = await fetch(`${JSONBIN_BASE_URL}/${currentRoom}`, {
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${REGISTRY_BIN_ID}`, {
                         headers: {
                             'X-Master-Key': JSONBIN_API_KEY
                         }
@@ -486,20 +490,89 @@
                     
                     if (response.ok) {
                         const data = await response.json();
-                        binId = data.metadata.id;
-                        updateConnectionStatus('connected');
+                        return data.record.rooms || {};
+                    } else {
+                        // If registry doesn't exist, create it
+                        const initialRegistry = { rooms: {} };
+                        const createResponse = await fetch(JSONBIN_BASE_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': JSONBIN_API_KEY,
+                                'X-Bin-Name': 'Chat Room Registry',
+                                'X-Bin-Private': 'false'
+                            },
+                            body: JSON.stringify(initialRegistry)
+                        });
                         
-                        // Load previous messages
-                        loadMessages(data.record.messages || []);
+                        if (createResponse.ok) {
+                            return {};
+                        } else {
+                            throw new Error('Failed to create registry');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error getting room registry:', error);
+                    showNotification('Failed to access room registry', true);
+                    return {};
+                }
+            }
+            
+            // Update room registry
+            async function updateRoomRegistry(registry) {
+                try {
+                    await fetch(`${JSONBIN_BASE_URL}/${REGISTRY_BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_API_KEY
+                        },
+                        body: JSON.stringify({ rooms: registry })
+                    });
+                } catch (error) {
+                    console.error('Error updating room registry:', error);
+                    showNotification('Failed to update room registry', true);
+                }
+            }
+            
+            // Initialize the chat room
+            async function initializeRoom() {
+                try {
+                    updateConnectionStatus('connecting');
+                    
+                    // Get the room registry
+                    const registry = await getRoomRegistry();
+                    
+                    // Check if room exists in registry
+                    if (registry[currentRoom]) {
+                        // Room exists - get the actual bin ID
+                        currentBinId = registry[currentRoom];
                         
-                        // Add user to room
-                        await addUserToRoom(data.record.users || []);
+                        // Load the room data
+                        const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
+                            headers: {
+                                'X-Master-Key': JSONBIN_API_KEY
+                            }
+                        });
                         
-                        // Start checking for updates
-                        startCheckingForUpdates();
+                        if (response.ok) {
+                            const data = await response.json();
+                            updateConnectionStatus('connected');
+                            
+                            // Load previous messages
+                            loadMessages(data.record.messages || []);
+                            
+                            // Add user to room
+                            await addUserToRoom(data.record.users || []);
+                            
+                            // Start checking for updates
+                            startCheckingForUpdates();
+                        } else {
+                            throw new Error('Failed to load room data');
+                        }
                     } else {
                         // Create new room if it doesn't exist
-                        await createNewRoom();
+                        await createNewRoom(registry);
                     }
                 } catch (error) {
                     console.error('Error initializing room:', error);
@@ -509,15 +582,15 @@
             }
             
             // Create a new room
-            async function createNewRoom() {
+            async function createNewRoom(registry) {
                 try {
                     const roomData = {
-                        binId: currentRoom,
                         users: [currentUser],
                         messages: [],
                         createdAt: new Date().toISOString()
                     };
                     
+                    // Create the room bin
                     const response = await fetch(JSONBIN_BASE_URL, {
                         method: 'POST',
                         headers: {
@@ -531,7 +604,12 @@
                     
                     if (response.ok) {
                         const data = await response.json();
-                        binId = data.metadata.id;
+                        currentBinId = data.metadata.id;
+                        
+                        // Update registry with the new room
+                        registry[currentRoom] = currentBinId;
+                        await updateRoomRegistry(registry);
+                        
                         updateConnectionStatus('connected');
                         
                         // Load empty messages
@@ -553,7 +631,7 @@
             async function addUserToRoom(existingUsers = []) {
                 try {
                     // Get current room data
-                    const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
                         headers: {
                             'X-Master-Key': JSONBIN_API_KEY
                         }
@@ -582,7 +660,7 @@
             // Update room data
             async function updateRoomData(roomData) {
                 try {
-                    const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -649,7 +727,7 @@
             function startCheckingForUpdates() {
                 checkInterval = setInterval(async () => {
                     try {
-                        const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                        const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
                             headers: {
                                 'X-Master-Key': JSONBIN_API_KEY
                             }
@@ -694,7 +772,7 @@
                 
                 try {
                     // Get current room data
-                    const response = await fetch(`${JSONBIN_BASE_URL}/${binId}`, {
+                    const response = await fetch(`${JSONBIN_BASE_URL}/${currentBinId}`, {
                         headers: {
                             'X-Master-Key': JSONBIN_API_KEY
                         }
