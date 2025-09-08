@@ -287,9 +287,24 @@
             padding: 20px;
             color: #718096;
         }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background-color: #4a6cf7;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <div class="notification" id="notification"></div>
+    
     <div class="container">
         <header>
             <h1>Real-Time Chat App</h1>
@@ -320,6 +335,7 @@
                     </div>
 
                     <div id="connectionStatus" class="status disconnected">Disconnected</div>
+                    <button id="copyRoomCode" style="background: linear-gradient(90deg, #48bb78, #38a169); margin-top: 10px;">Copy Room Code</button>
                 </div>
             </div>
             
@@ -376,6 +392,8 @@
             const sendMessageBtn = document.getElementById('sendMessage');
             const typingIndicator = document.getElementById('typingIndicator');
             const connectionStatus = document.getElementById('connectionStatus');
+            const copyRoomCodeBtn = document.getElementById('copyRoomCode');
+            const notification = document.getElementById('notification');
             
             // Current user and room
             let currentUser = '';
@@ -384,17 +402,38 @@
             let lastMessageId = 0;
             let binId = null;
             let userUpdateCount = 0;
+            let lastUserList = [];
+            
+            // Show notification
+            function showNotification(message, isError = false) {
+                notification.textContent = message;
+                notification.style.backgroundColor = isError ? '#e53e3e' : '#4a6cf7';
+                notification.style.display = 'block';
+                
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
             
             // Generate a random room code
             function generateRoomCode() {
                 return Math.random().toString(36).substring(2, 8).toUpperCase();
             }
             
+            // Copy room code to clipboard
+            copyRoomCodeBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(currentRoom).then(() => {
+                    showNotification('Room code copied to clipboard!');
+                }).catch(err => {
+                    showNotification('Failed to copy room code', true);
+                });
+            });
+            
             // Create a new room
             createRoomBtn.addEventListener('click', function() {
                 currentUser = usernameInput.value.trim();
                 if (!currentUser) {
-                    alert('Please enter your name first');
+                    showNotification('Please enter your name first', true);
                     return;
                 }
                 
@@ -409,12 +448,12 @@
                 currentRoom = roomCodeInput.value.trim().toUpperCase();
                 
                 if (!currentUser) {
-                    alert('Please enter your name first');
+                    showNotification('Please enter your name first', true);
                     return;
                 }
                 
                 if (!currentRoom || currentRoom.length !== 6) {
-                    alert('Please enter a valid 6-character room code');
+                    showNotification('Please enter a valid 6-character room code', true);
                     return;
                 }
                 
@@ -447,7 +486,7 @@
                     
                     if (response.ok) {
                         const data = await response.json();
-                        binId = data.record.binId || currentRoom;
+                        binId = data.metadata.id;
                         updateConnectionStatus('connected');
                         
                         // Load previous messages
@@ -465,7 +504,7 @@
                 } catch (error) {
                     console.error('Error initializing room:', error);
                     updateConnectionStatus('disconnected');
-                    alert('Failed to connect to chat room. Please try again.');
+                    showNotification('Failed to connect to chat room. Please try again.', true);
                 }
             }
             
@@ -506,7 +545,7 @@
                 } catch (error) {
                     console.error('Error creating room:', error);
                     updateConnectionStatus('disconnected');
-                    alert('Failed to create chat room. Please try again.');
+                    showNotification('Failed to create chat room. Please try again.', true);
                 }
             }
             
@@ -563,6 +602,12 @@
             
             // Update users list
             function updateUsersList(users) {
+                // Check if the user list has actually changed
+                if (JSON.stringify(users) === JSON.stringify(lastUserList)) {
+                    return;
+                }
+                
+                lastUserList = users;
                 usersInRoom.innerHTML = '';
                 
                 if (users && users.length > 0) {
@@ -632,7 +677,7 @@
                         console.error('Error checking for updates:', error);
                         updateConnectionStatus('disconnected');
                     }
-                }, 2000);
+                }, 1500); // Reduced to 1.5 seconds for better real-time feel
             }
             
             // Send message
@@ -683,7 +728,7 @@
                     }
                 } catch (error) {
                     console.error('Error sending message:', error);
-                    alert('Failed to send message. Please try again.');
+                    showNotification('Failed to send message. Please try again.', true);
                 }
             }
             
