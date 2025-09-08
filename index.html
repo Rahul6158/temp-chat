@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Chat App by Riteesh Varma</title>
+    <title>Real-Time Chat App</title>
     <style>
         * {
             margin: 0;
@@ -373,7 +373,7 @@
 
     <script>
         // JSONBin.io configuration
-        const JSONBIN_API_KEY = '$2a$10$YNflwpCDfrkvA1owMU9AQuzEDUHvTmvIVvRTn.HpwDkikPIiRnQSG';
+        const JSONBIN_API_KEY = '$2a$10$NUdHI0xRzqGAfPhRD.bByOVr8s8GSTUGBVYRBxOQYsQNqrOZLnWdm';
         const JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b';
         
         // Registry bin ID - this should be created manually first
@@ -381,7 +381,7 @@
         // 1. Go to https://jsonbin.io/
         // 2. Create a new bin with content: {"rooms": {}}
         // 3. Copy the bin ID and paste it here
-        const REGISTRY_BIN_ID = '68bec2c5ae596e708fe6c36b'; // Replace with your actual registry bin ID
+        const REGISTRY_BIN_ID = '68be764cae596e708fe66de9'; // Replace with your actual registry bin ID
         
         document.addEventListener('DOMContentLoaded', function() {
             // DOM Elements
@@ -407,8 +407,7 @@
             let currentRoom = '';
             let currentBinId = '';
             let checkInterval = null;
-            let lastMessageTimestamp = 0; // Track last message timestamp instead of ID
-            let displayedMessageIds = new Set(); // Track displayed messages to prevent duplicates
+            let lastMessageId = 0;
             let userUpdateCount = 0;
             let lastUserList = [];
             
@@ -741,21 +740,13 @@
                             // Update users list
                             updateUsersList(roomData.users);
                             
-                            // Check for new messages using timestamp comparison
-                            if (roomData.messages && roomData.messages.length > 0) {
-                                const latestMessage = roomData.messages[roomData.messages.length - 1];
-                                
-                                if (latestMessage.timestamp > lastMessageTimestamp) {
-                                    // Add only new messages to UI
-                                    for (let i = 0; i < roomData.messages.length; i++) {
-                                        const message = roomData.messages[i];
-                                        if (message.timestamp > lastMessageTimestamp && !displayedMessageIds.has(message.timestamp)) {
-                                            addMessageToUI(message);
-                                            displayedMessageIds.add(message.timestamp);
-                                        }
-                                    }
-                                    lastMessageTimestamp = latestMessage.timestamp;
+                            // Check for new messages
+                            if (roomData.messages && roomData.messages.length > lastMessageId) {
+                                // Add new messages to UI
+                                for (let i = lastMessageId; i < roomData.messages.length; i++) {
+                                    addMessageToUI(roomData.messages[i]);
                                 }
+                                lastMessageId = roomData.messages.length;
                             }
                             
                             updateConnectionStatus('connected');
@@ -791,14 +782,13 @@
                         const data = await response.json();
                         const roomData = data.record;
                         
-                        // Create message object with unique timestamp ID
-                        const timestamp = Date.now();
+                        // Create message object
                         const message = {
                             id: roomData.messages ? roomData.messages.length : 0,
                             user: currentUser,
                             text: messageText,
                             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            timestamp: timestamp
+                            timestamp: Date.now()
                         };
                         
                         // Add message to room data
@@ -808,10 +798,8 @@
                         // Update room data
                         await updateRoomData(roomData);
                         
-                        // Add to UI and mark as displayed
+                        // Add to UI
                         addMessageToUI(message);
-                        displayedMessageIds.add(timestamp);
-                        lastMessageTimestamp = timestamp;
                         
                         // Clear input
                         messageInput.value = '';
@@ -825,7 +813,7 @@
             // Load messages
             function loadMessages(messages) {
                 messagesContainer.innerHTML = '';
-                displayedMessageIds.clear();
+                lastMessageId = messages.length;
                 
                 if (messages.length === 0) {
                     messagesContainer.innerHTML = '<div class="loading">No messages yet. Start the conversation!</div>';
@@ -834,12 +822,6 @@
                 
                 messages.forEach(message => {
                     addMessageToUI(message);
-                    displayedMessageIds.add(message.timestamp);
-                    
-                    // Track the latest message timestamp
-                    if (message.timestamp > lastMessageTimestamp) {
-                        lastMessageTimestamp = message.timestamp;
-                    }
                 });
                 
                 // Scroll to bottom
@@ -853,17 +835,8 @@
                     messagesContainer.innerHTML = '';
                 }
                 
-                // Check if message is already displayed
-                if (displayedMessageIds.has(message.timestamp)) {
-                    const existingMessage = document.querySelector(`[data-message-id="${message.timestamp}"]`);
-                    if (existingMessage) {
-                        return; // Message already displayed
-                    }
-                }
-                
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('message');
-                messageDiv.setAttribute('data-message-id', message.timestamp);
                 
                 if (message.user === currentUser) {
                     messageDiv.classList.add('my-message');
